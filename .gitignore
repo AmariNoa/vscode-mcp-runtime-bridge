@@ -1,0 +1,24 @@
+# ローカル専用の規約・設計資料（コミット対象外）
+AGENTS.md
+CLAUDE.md
+docs/
+contracts/sources/
+README.md
+.github/
+
+# Node.js / VS Code Extension
+node_modules/
+dist/
+out/
+coverage/
+*.vsix
+*.log
+
+# Local configuration and secrets
+.env
+.env.*
+
+# Editor and operating-system metadata
+.vscode/
+.DS_Store
+Thumbs.db

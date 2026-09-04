@@ -1,0 +1,948 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/contracts/mfm-v14-bridge-compat.schema.json",
+  "title": "MFM v14 Bridge compatibility overlay",
+  "type": "object",
+  "$defs": {
+    "sourceDescriptor": {
+      "type": "object",
+      "required": [
+        "sourceDocument",
+        "snapshotPath",
+        "sourceSha256",
+        "sourceByteLength",
+        "hashMode",
+        "apiVersion",
+        "astSchemaVersion",
+        "mfmJsBaseline"
+      ],
+      "properties": {
+        "sourceDocument": {
+          "const": "MFM-VSCode-Language-Support_MCP-Integration_Revised-v14.md"
+        },
+        "snapshotPath": {
+          "const": "contracts/sources/MFM-VSCode-Language-Support_MCP-Integration_Revised-v14.md"
+        },
+        "sourceSha256": {
+          "type": "string",
+          "const": "fff464e677fb67c1710bc2bf52487e8e48316021795952473bd5c0aa071db3b4",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "sourceByteLength": {
+          "const": 72999
+        },
+        "hashMode": {
+          "const": "raw-bytes"
+        },
+        "apiVersion": {
+          "const": 1
+        },
+        "astSchemaVersion": {
+          "const": 1
+        },
+        "mfmJsBaseline": {
+          "const": "0.26.0"
+        }
+      },
+      "additionalProperties": true
+    },
+    "environment": {
+      "type": "object",
+      "required": ["supported", "kind"],
+      "properties": {
+        "supported": {
+          "type": "boolean"
+        },
+        "kind": {
+          "enum": ["desktop-local", "remote", "web", "unknown"]
+        },
+        "remoteName": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "capabilities": {
+      "type": "object",
+      "required": [
+        "parse",
+        "validate",
+        "renderHtml",
+        "listInstanceProfiles",
+        "capturePreview",
+        "standaloneScripts",
+        "embeddedCustomEmoji"
+      ],
+      "properties": {
+        "parse": {
+          "const": true
+        },
+        "validate": {
+          "const": true
+        },
+        "renderHtml": {
+          "const": true
+        },
+        "listInstanceProfiles": {
+          "const": true
+        },
+        "capturePreview": {
+          "const": false
+        },
+        "standaloneScripts": {
+          "const": false
+        },
+        "embeddedCustomEmoji": {
+          "const": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "limits": {
+      "type": "object",
+      "required": [
+        "maxInputCodeUnits",
+        "maxUniqueEmojiRawBytes",
+        "maxDataUrlCodeUnits",
+        "maxEmojiOccurrences",
+        "maxSameEmojiOccurrences",
+        "maxHtmlBytes"
+      ],
+      "properties": {
+        "maxInputCodeUnits": {
+          "$ref": "#/$defs/positiveSafeInteger"
+        },
+        "maxUniqueEmojiRawBytes": {
+          "$ref": "#/$defs/positiveSafeInteger"
+        },
+        "maxDataUrlCodeUnits": {
+          "$ref": "#/$defs/positiveSafeInteger"
+        },
+        "maxEmojiOccurrences": {
+          "$ref": "#/$defs/positiveSafeInteger"
+        },
+        "maxSameEmojiOccurrences": {
+          "$ref": "#/$defs/positiveSafeInteger"
+        },
+        "maxHtmlBytes": {
+          "$ref": "#/$defs/positiveSafeInteger"
+        }
+      },
+      "additionalProperties": true
+    },
+    "positiveSafeInteger": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "apiMetadata": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "astSchemaVersion",
+        "environment",
+        "capabilities",
+        "limits"
+      ],
+      "properties": {
+        "apiVersion": {
+          "const": 1
+        },
+        "astSchemaVersion": {
+          "const": 1
+        },
+        "environment": {
+          "$ref": "#/$defs/environment"
+        },
+        "capabilities": {
+          "$ref": "#/$defs/capabilities"
+        },
+        "limits": {
+          "$ref": "#/$defs/limits"
+        }
+      },
+      "additionalProperties": true
+    },
+    "position": {
+      "type": "object",
+      "required": ["line", "character"],
+      "properties": {
+        "line": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "character": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "range": {
+      "type": "object",
+      "required": ["start", "end"],
+      "properties": {
+        "start": {
+          "$ref": "#/$defs/position"
+        },
+        "end": {
+          "$ref": "#/$defs/position"
+        }
+      },
+      "additionalProperties": true
+    },
+    "diagnostic": {
+      "type": "object",
+      "required": ["severity", "code", "message"],
+      "properties": {
+        "severity": {
+          "enum": ["error", "warning", "information"]
+        },
+        "code": {
+          "enum": [
+            "unclosed-function",
+            "unknown-function",
+            "unknown-argument",
+            "invalid-argument-value"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "range": {
+          "$ref": "#/$defs/range"
+        }
+      },
+      "additionalProperties": true
+    },
+    "renderNotice": {
+      "type": "object",
+      "required": ["code", "count", "message"],
+      "properties": {
+        "code": {
+          "enum": [
+            "custom-emoji-fetch-failed",
+            "custom-emoji-metadata-rejected",
+            "custom-emoji-image-rejected",
+            "custom-emoji-resource-deadline",
+            "custom-emoji-queue-limit",
+            "custom-emoji-output-limit"
+          ]
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "externalResource": {
+      "type": "object",
+      "required": [
+        "kind",
+        "resourceOrigin",
+        "mimeType",
+        "rawByteLength",
+        "width",
+        "height",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "const": "custom-emoji"
+        },
+        "resourceOrigin": {
+          "type": "string"
+        },
+        "mimeType": {
+          "enum": ["image/png", "image/jpeg", "image/gif", "image/webp"]
+        },
+        "rawByteLength": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "additionalProperties": true
+    },
+    "instanceProfile": {
+      "type": "object",
+      "required": ["id", "label", "origin", "approvedResourceOrigins"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string"
+        },
+        "origin": {
+          "type": "string"
+        },
+        "approvedResourceOrigins": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "jsonValue": {
+      "anyOf": [
+        {
+          "type": ["string", "number", "boolean", "null"]
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/jsonValue"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/jsonValue"
+          }
+        }
+      ]
+    },
+    "textNode": {
+      "type": "object",
+      "required": ["type", "props"],
+      "properties": {
+        "type": {
+          "const": "text"
+        },
+        "props": {
+          "type": "object",
+          "required": ["text"],
+          "properties": {
+            "text": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "unknownNode": {
+      "type": "object",
+      "required": ["type", "originalType"],
+      "properties": {
+        "type": {
+          "const": "unknown"
+        },
+        "originalType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "props": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/jsonValue"
+          }
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/astNode"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "inlineNode": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/textNode"
+        },
+        {
+          "$ref": "#/$defs/unknownNode"
+        },
+        {
+          "$ref": "#/$defs/inlineLeafNode"
+        },
+        {
+          "$ref": "#/$defs/inlineContainerNode"
+        }
+      ]
+    },
+    "inlineLeafNode": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/unicodeEmojiNode"
+        },
+        {
+          "$ref": "#/$defs/emojiCodeNode"
+        },
+        {
+          "$ref": "#/$defs/inlineCodeNode"
+        },
+        {
+          "$ref": "#/$defs/mathInlineNode"
+        },
+        {
+          "$ref": "#/$defs/mentionNode"
+        },
+        {
+          "$ref": "#/$defs/hashtagNode"
+        },
+        {
+          "$ref": "#/$defs/urlNode"
+        }
+      ]
+    },
+    "inlineContainerNode": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/childrenOnlyInlineNode"
+        },
+        {
+          "$ref": "#/$defs/linkNode"
+        },
+        {
+          "$ref": "#/$defs/functionNode"
+        },
+        {
+          "$ref": "#/$defs/plainNode"
+        }
+      ]
+    },
+    "childrenOnlyInlineNode": {
+      "type": "object",
+      "required": ["type", "children"],
+      "properties": {
+        "type": {
+          "enum": ["bold", "small", "italic", "strike"]
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/inlineNode"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "unicodeEmojiNode": {
+      "type": "object",
+      "required": ["type", "props"],
+      "properties": {
+        "type": {
+          "const": "unicodeEmoji"
+        },
+        "props": {
+          "type": "object",
+          "required": ["emoji"],
+          "properties": {
+            "emoji": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "emojiCodeNode": {
+      "type": "object",
+      "required": ["type", "props"],
+      "properties": {
+        "type": {
+          "const": "emojiCode"
+        },
+        "props": {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "inlineCodeNode": {
+      "type": "object",
+      "required": ["type", "props"],
+      "properties": {
+        "type": {
+          "const": "inlineCode"
+        },
+        "props": {
+          "type": "object",
+          "required": ["code"],
+          "properties": {
+            "code": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "mathInlineNode": {
+      "type": "object",
+      "required": ["type", "props"],
+      "properties": {
+        "type": {
+          "const": "mathInline"
+        },
+        "props": {
+          "type": "object",
+          "required": ["formula"],
+          "properties": {
+            "formula": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "hashtagNode": {
+      "type": "object",
+      "required": ["type", "props"],
+      "properties": {
+        "type": {
+          "const": "hashtag"
+        },
+        "props": {
+          "type": "object",
+          "required": ["hashtag"],
+          "properties": {
+            "hashtag": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "mentionNode": {
+      "type": "object",
+      "required": ["type", "props"],
+      "properties": {
+        "type": {
+          "const": "mention"
+        },
+        "props": {
+          "type": "object",
+          "required": ["username", "host", "acct"],
+          "properties": {
+            "username": {
+              "type": "string"
+            },
+            "host": {
+              "type": ["string", "null"]
+            },
+            "acct": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "urlNode": {
+      "type": "object",
+      "required": ["type", "props"],
+      "properties": {
+        "type": {
+          "const": "url"
+        },
+        "props": {
+          "type": "object",
+          "required": ["url"],
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "brackets": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "linkNode": {
+      "type": "object",
+      "required": ["type", "props", "children"],
+      "properties": {
+        "type": {
+          "const": "link"
+        },
+        "props": {
+          "type": "object",
+          "required": ["silent", "url"],
+          "properties": {
+            "silent": {
+              "type": "boolean"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/inlineNode"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "functionNode": {
+      "type": "object",
+      "required": ["type", "props", "children"],
+      "properties": {
+        "type": {
+          "const": "fn"
+        },
+        "props": {
+          "type": "object",
+          "required": ["name", "args"],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "args": {
+              "type": "object",
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "const": true
+                  }
+                ]
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/inlineNode"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "plainNode": {
+      "type": "object",
+      "required": ["type", "children"],
+      "properties": {
+        "type": {
+          "const": "plain"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/textNode"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "quoteNode": {
+      "type": "object",
+      "required": ["type", "children"],
+      "properties": {
+        "type": {
+          "const": "quote"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/astNode"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "centerNode": {
+      "type": "object",
+      "required": ["type", "children"],
+      "properties": {
+        "type": {
+          "const": "center"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/inlineNode"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "searchNode": {
+      "type": "object",
+      "required": ["type", "props"],
+      "properties": {
+        "type": {
+          "const": "search"
+        },
+        "props": {
+          "type": "object",
+          "required": ["query", "content"],
+          "properties": {
+            "query": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "blockCodeNode": {
+      "type": "object",
+      "required": ["type", "props"],
+      "properties": {
+        "type": {
+          "const": "blockCode"
+        },
+        "props": {
+          "type": "object",
+          "required": ["code", "lang"],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "lang": {
+              "type": ["string", "null"]
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "formulaNode": {
+      "type": "object",
+      "required": ["type", "props"],
+      "properties": {
+        "type": {
+          "const": "mathBlock"
+        },
+        "props": {
+          "type": "object",
+          "required": ["formula"],
+          "properties": {
+            "formula": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "astNode": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/quoteNode"
+        },
+        {
+          "$ref": "#/$defs/searchNode"
+        },
+        {
+          "$ref": "#/$defs/blockCodeNode"
+        },
+        {
+          "$ref": "#/$defs/formulaNode"
+        },
+        {
+          "$ref": "#/$defs/centerNode"
+        },
+        {
+          "$ref": "#/$defs/inlineNode"
+        }
+      ]
+    },
+    "parseValue": {
+      "type": "object",
+      "required": ["astSchemaVersion", "nodes"],
+      "properties": {
+        "astSchemaVersion": {
+          "const": 1
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/astNode"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "validationValue": {
+      "type": "object",
+      "required": ["valid", "diagnostics"],
+      "properties": {
+        "valid": {
+          "type": "boolean"
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/diagnostic"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "renderValue": {
+      "type": "object",
+      "required": ["html", "diagnostics", "notices", "externalResources"],
+      "properties": {
+        "html": {
+          "type": "string"
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/diagnostic"
+          }
+        },
+        "notices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/renderNotice"
+          }
+        },
+        "externalResources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/externalResource"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "errorCode": {
+      "enum": [
+        "input-too-large",
+        "parser-failure",
+        "ast-conversion-failure",
+        "cancelled",
+        "extension-deactivated",
+        "instance-profile-not-found",
+        "instance-profile-required",
+        "instance-profile-not-approved",
+        "instance-profile-changed",
+        "render-output-too-large",
+        "unsupported-environment",
+        "internal-error"
+      ]
+    },
+    "failure": {
+      "type": "object",
+      "required": ["ok", "error"],
+      "properties": {
+        "ok": {
+          "const": false
+        },
+        "error": {
+          "type": "object",
+          "required": ["code"],
+          "properties": {
+            "code": {
+              "$ref": "#/$defs/errorCode"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "parseSuccess": {
+      "type": "object",
+      "required": ["ok", "value"],
+      "properties": {
+        "ok": {
+          "const": true
+        },
+        "value": {
+          "$ref": "#/$defs/parseValue"
+        }
+      },
+      "additionalProperties": true
+    },
+    "validationSuccess": {
+      "type": "object",
+      "required": ["ok", "value"],
+      "properties": {
+        "ok": {
+          "const": true
+        },
+        "value": {
+          "$ref": "#/$defs/validationValue"
+        }
+      },
+      "additionalProperties": true
+    },
+    "renderSuccess": {
+      "type": "object",
+      "required": ["ok", "value"],
+      "properties": {
+        "ok": {
+          "const": true
+        },
+        "value": {
+          "$ref": "#/$defs/renderValue"
+        }
+      },
+      "additionalProperties": true
+    },
+    "profileListSuccess": {
+      "type": "object",
+      "required": ["ok", "value"],
+      "properties": {
+        "ok": {
+          "const": true
+        },
+        "value": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/instanceProfile"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

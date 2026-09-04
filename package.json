@@ -1,0 +1,106 @@
+{
+  "name": "vscode-mcp-runtime-bridge",
+  "displayName": "VS Code MCP Bridge",
+  "description": "A localhost MCP bridge for VS Code APIs and approved extension adapters.",
+  "version": "0.1.0",
+  "publisher": "noa-amari",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "vscodeMcp.copyEndpoint",
+        "title": "VS Code MCP: Copy Endpoint"
+      },
+      {
+        "command": "vscodeMcp.copyClientConfiguration",
+        "title": "VS Code MCP: Copy Client Configuration"
+      },
+      {
+        "command": "vscodeMcp.regenerateAccessToken",
+        "title": "VS Code MCP: Regenerate Access Token"
+      },
+      {
+        "command": "vscodeMcp.restartServer",
+        "title": "VS Code MCP: Restart Server"
+      }
+    ],
+    "configuration": {
+      "title": "VS Code MCP Bridge",
+      "properties": {
+        "vscodeMcp.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Start the localhost MCP server for this VS Code window."
+        },
+        "vscodeMcp.host": {
+          "type": "string",
+          "enum": [
+            "127.0.0.1"
+          ],
+          "default": "127.0.0.1",
+          "description": "Loopback address used by the MCP server."
+        },
+        "vscodeMcp.port": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535,
+          "default": 0,
+          "description": "Local MCP port. Zero requests an operating-system assigned port."
+        },
+        "vscodeMcp.allowWorkspaceEdit": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow version-checked edits inside the current workspace."
+        },
+        "vscodeMcp.maxConcurrentCaptures": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2,
+          "default": 2,
+          "description": "Maximum number of concurrent preview captures."
+        },
+        "vscodeMcp.captureQueueLimit": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8,
+          "default": 8,
+          "description": "Maximum number of preview captures waiting for execution."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs --production",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --reporter=dot",
+    "test:contract": "vitest run test/contracts --reporter=dot",
+    "test:vscode": "node ./test/vscode/run.mjs",
+    "package": "npm run build && vsce package"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "ajv": "8.20.0",
+    "playwright": "1.62.1",
+    "zod": "4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.43",
+    "@types/vscode": "1.90.0",
+    "@vscode/test-electron": "2.5.2",
+    "@vscode/vsce": "3.9.2",
+    "esbuild": "0.28.2",
+    "typescript": "5.9.3",
+    "vite": "6.4.3",
+    "vitest": "3.2.6"
+  }
+}

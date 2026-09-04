@@ -1,0 +1,371 @@
+{
+  "apiMetadata": {
+    "apiVersion": 1,
+    "astSchemaVersion": 1,
+    "environment": {
+      "supported": true,
+      "kind": "desktop-local"
+    },
+    "capabilities": {
+      "parse": true,
+      "validate": true,
+      "renderHtml": true,
+      "listInstanceProfiles": true,
+      "capturePreview": false,
+      "standaloneScripts": false,
+      "embeddedCustomEmoji": true
+    },
+    "limits": {
+      "maxInputCodeUnits": 16384,
+      "maxUniqueEmojiRawBytes": 8388608,
+      "maxDataUrlCodeUnits": 12582912,
+      "maxEmojiOccurrences": 512,
+      "maxSameEmojiOccurrences": 32,
+      "maxHtmlBytes": 16777216
+    }
+  },
+  "parseSuccess": {
+    "ok": true,
+    "value": {
+      "astSchemaVersion": 1,
+      "nodes": [
+        {
+          "type": "quote",
+          "children": [
+            {
+              "type": "text",
+              "props": {
+                "text": "quoted"
+              }
+            }
+          ]
+        },
+        {
+          "type": "search",
+          "props": {
+            "query": "MFM",
+            "content": "MFM Search"
+          }
+        },
+        {
+          "type": "blockCode",
+          "props": {
+            "code": "const value = 1;",
+            "lang": "typescript"
+          }
+        },
+        {
+          "type": "mathBlock",
+          "props": {
+            "formula": "x^2"
+          }
+        },
+        {
+          "type": "center",
+          "children": [
+            {
+              "type": "text",
+              "props": {
+                "text": "centered"
+              }
+            }
+          ]
+        },
+        {
+          "type": "unicodeEmoji",
+          "props": {
+            "emoji": "test-emoji"
+          }
+        },
+        {
+          "type": "emojiCode",
+          "props": {
+            "name": "example"
+          }
+        },
+        {
+          "type": "bold",
+          "children": [
+            {
+              "type": "text",
+              "props": {
+                "text": "bold"
+              }
+            }
+          ]
+        },
+        {
+          "type": "small",
+          "children": []
+        },
+        {
+          "type": "italic",
+          "children": []
+        },
+        {
+          "type": "strike",
+          "children": []
+        },
+        {
+          "type": "inlineCode",
+          "props": {
+            "code": "value"
+          }
+        },
+        {
+          "type": "mathInline",
+          "props": {
+            "formula": "x+y"
+          }
+        },
+        {
+          "type": "mention",
+          "props": {
+            "username": "user",
+            "host": null,
+            "acct": "@user"
+          }
+        },
+        {
+          "type": "hashtag",
+          "props": {
+            "hashtag": "example"
+          }
+        },
+        {
+          "type": "url",
+          "props": {
+            "url": "https://example.com/path",
+            "brackets": false
+          }
+        },
+        {
+          "type": "link",
+          "props": {
+            "silent": false,
+            "url": "https://example.com/path"
+          },
+          "children": []
+        },
+        {
+          "type": "fn",
+          "props": {
+            "name": "spin",
+            "args": {
+              "speed": "1s",
+              "left": true
+            }
+          },
+          "children": []
+        },
+        {
+          "type": "plain",
+          "children": [
+            {
+              "type": "text",
+              "props": {
+                "text": "plain"
+              }
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "props": {
+            "text": "text"
+          }
+        },
+        {
+          "type": "unknown",
+          "originalType": "futureNode",
+          "props": {
+            "future": [
+              "value",
+              1,
+              true,
+              null
+            ]
+          },
+          "children": []
+        }
+      ]
+    }
+  },
+  "validationSuccess": {
+    "ok": true,
+    "value": {
+      "valid": false,
+      "diagnostics": [
+        {
+          "severity": "error",
+          "code": "unclosed-function",
+          "message": "An MFM function is not closed.",
+          "range": {
+            "start": {
+              "line": 0,
+              "character": 0
+            },
+            "end": {
+              "line": 0,
+              "character": 2
+            }
+          }
+        },
+        {
+          "severity": "warning",
+          "code": "unknown-function",
+          "message": "The MFM function is unknown."
+        },
+        {
+          "severity": "warning",
+          "code": "unknown-argument",
+          "message": "The MFM function argument is unknown."
+        },
+        {
+          "severity": "information",
+          "code": "invalid-argument-value",
+          "message": "The MFM function argument is invalid."
+        }
+      ]
+    }
+  },
+  "renderSuccess": {
+    "ok": true,
+    "value": {
+      "html": "<!DOCTYPE html><html><head></head><body>example</body></html>",
+      "diagnostics": [],
+      "notices": [
+        {
+          "code": "custom-emoji-fetch-failed",
+          "count": 1,
+          "message": "A custom emoji could not be loaded."
+        },
+        {
+          "code": "custom-emoji-metadata-rejected",
+          "count": 1,
+          "message": "Custom emoji metadata was rejected."
+        },
+        {
+          "code": "custom-emoji-image-rejected",
+          "count": 1,
+          "message": "A custom emoji image was rejected."
+        },
+        {
+          "code": "custom-emoji-resource-deadline",
+          "count": 1,
+          "message": "The custom emoji resource deadline was reached."
+        },
+        {
+          "code": "custom-emoji-queue-limit",
+          "count": 1,
+          "message": "The custom emoji queue is full."
+        },
+        {
+          "code": "custom-emoji-output-limit",
+          "count": 1,
+          "message": "A custom emoji exceeded an output limit."
+        }
+      ],
+      "externalResources": [
+        {
+          "kind": "custom-emoji",
+          "resourceOrigin": "https://cdn.example.com",
+          "mimeType": "image/png",
+          "rawByteLength": 68,
+          "width": 1,
+          "height": 1,
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    }
+  },
+  "profileListSuccess": {
+    "ok": true,
+    "value": [
+      {
+        "id": "00000000-0000-4000-8000-000000000000",
+        "label": "Example",
+        "origin": "https://example.com",
+        "approvedResourceOrigins": [
+          "https://cdn.example.com"
+        ]
+      }
+    ]
+  },
+  "failures": [
+    {
+      "ok": false,
+      "error": {
+        "code": "input-too-large"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "parser-failure"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "ast-conversion-failure"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "cancelled"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "extension-deactivated"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "instance-profile-not-found"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "instance-profile-required"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "instance-profile-not-approved"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "instance-profile-changed"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "render-output-too-large"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "unsupported-environment"
+      }
+    },
+    {
+      "ok": false,
+      "error": {
+        "code": "internal-error",
+        "futureDetail": "ignored"
+      }
+    }
+  ]
+}
+

@@ -1,0 +1,11 @@
+{
+  "sourceDocument": "MFM-VSCode-Language-Support_MCP-Integration_Revised-v14.md",
+  "snapshotPath": "contracts/sources/MFM-VSCode-Language-Support_MCP-Integration_Revised-v14.md",
+  "sourceSha256": "fff464e677fb67c1710bc2bf52487e8e48316021795952473bd5c0aa071db3b4",
+  "sourceByteLength": 72999,
+  "hashMode": "raw-bytes",
+  "apiVersion": 1,
+  "astSchemaVersion": 1,
+  "mfmJsBaseline": "0.26.0"
+}
+
