@@ -4,6 +4,8 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { isInitializeRequest, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import type { BridgeLogger } from "../core/logging";
 
+export type ConfigureMcpServer = (server: McpServer) => void;
+
 interface Session {
   readonly server: McpServer;
   readonly transport: WebStandardStreamableHTTPServerTransport;
@@ -14,7 +16,8 @@ export class McpSessionRouter {
 
   public constructor(
     private readonly allowedHosts: readonly string[],
-    private readonly logger: BridgeLogger
+    private readonly logger: BridgeLogger,
+    private readonly configureServer?: ConfigureMcpServer
   ) {}
 
   public async handle(request: Request, parsedBody: unknown): Promise<Response> {
@@ -45,7 +48,7 @@ export class McpSessionRouter {
         this.logger.info("client-disconnected", { sessionId: closedSessionId });
       }
     });
-    const server = createMcpServer();
+    const server = createMcpServer(this.configureServer);
     await server.connect(transport);
 
     try {
@@ -70,7 +73,7 @@ export class McpSessionRouter {
   }
 }
 
-function createMcpServer(): McpServer {
+function createMcpServer(configureServer?: ConfigureMcpServer): McpServer {
   const server = new McpServer(
     {
       name: "vscode-mcp-runtime-bridge",
@@ -78,7 +81,11 @@ function createMcpServer(): McpServer {
     },
     { capabilities: { tools: {} } }
   );
-  server.server.setRequestHandler(ListToolsRequestSchema, () => ({ tools: [] }));
+  if (configureServer === undefined) {
+    server.server.setRequestHandler(ListToolsRequestSchema, () => ({ tools: [] }));
+  } else {
+    configureServer(server);
+  }
   return server;
 }
 

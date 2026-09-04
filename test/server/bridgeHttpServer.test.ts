@@ -4,6 +4,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { BridgeError } from "../../src/core/errors";
 import { NULL_LOGGER } from "../../src/core/logging";
 import { BridgeHttpServer } from "../../src/server/bridgeHttpServer";
+import { registerVsCodeTools } from "../../src/vscode/registerTools";
+import type { VsCodeToolsService } from "../../src/vscode/workspaceTools";
 
 const ACCESS_TOKEN = "integration_test_token";
 const activeServers: BridgeHttpServer[] = [];
@@ -12,12 +14,16 @@ afterEach(async () => {
   await Promise.allSettled(activeServers.splice(0).map((server) => server.stop()));
 });
 
-async function startServer(port = 0): Promise<BridgeHttpServer> {
+async function startServer(
+  port = 0,
+  configureMcpServer?: ConstructorParameters<typeof BridgeHttpServer>[0]["configureMcpServer"]
+): Promise<BridgeHttpServer> {
   const server = new BridgeHttpServer({
     host: "127.0.0.1",
     port,
     getAccessToken: () => Promise.resolve(ACCESS_TOKEN),
-    logger: NULL_LOGGER
+    logger: NULL_LOGGER,
+    configureMcpServer
   });
   activeServers.push(server);
   await server.start();
@@ -63,6 +69,36 @@ describe("BridgeHttpServer", () => {
     expect(transport.sessionId).toMatch(/^[0-9a-f-]{36}$/);
 
     await transport.terminateSession();
+    await client.close();
+  });
+
+  it("registers and calls the VS Code read-only tools", async () => {
+    const service = {
+      getWorkspaceInfo: () => ({ sessionId: "test-session", supportedEnvironment: true }),
+      getCapabilities: () => ({ supportedEnvironment: true, extensions: {} }),
+      getOpenDocuments: () => ({ documents: [] }),
+      readDocument: () => Promise.resolve({ uri: "untitled:test", text: "draft" }),
+      getDiagnostics: () => ({ diagnostics: [], count: 0, truncated: false })
+    } as unknown as VsCodeToolsService;
+    const server = await startServer(0, (mcpServer) =>
+      registerVsCodeTools(mcpServer, service, NULL_LOGGER, "test-session")
+    );
+    const { client, transport } = createClient(server.endpoint!);
+    await client.connect(transport);
+
+    const tools = await client.listTools();
+    expect(tools.tools.map((tool) => tool.name).sort()).toEqual([
+      "vscode.get_capabilities",
+      "vscode.get_diagnostics",
+      "vscode.get_open_documents",
+      "vscode.get_workspace_info",
+      "vscode.read_document"
+    ]);
+    await expect(
+      client.callTool({ name: "vscode.get_workspace_info", arguments: {} })
+    ).resolves.toMatchObject({
+      structuredContent: { sessionId: "test-session", supportedEnvironment: true }
+    });
     await client.close();
   });
 

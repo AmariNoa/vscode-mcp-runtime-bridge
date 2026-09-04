@@ -4,6 +4,8 @@ import { BearerTokenStore } from "../core/auth";
 import { BridgeError } from "../core/errors";
 import type { BridgeLogger } from "../core/logging";
 import { BridgeHttpServer } from "../server/bridgeHttpServer";
+import { registerVsCodeTools } from "../vscode/registerTools";
+import { VsCodeToolsService } from "../vscode/workspaceTools";
 
 const CONFIGURATION_SECTION = "vscodeMcp";
 const OUTPUT_CHANNEL_NAME = "VS Code MCP Bridge";
@@ -108,7 +110,9 @@ export class BridgeController implements vscode.Disposable {
       host,
       port,
       getAccessToken: () => this.tokenStore.getOrCreate(),
-      logger: this.logger
+      logger: this.logger,
+      configureMcpServer: (mcpServer) =>
+        registerVsCodeTools(mcpServer, new VsCodeToolsService(), this.logger, this.sessionId)
     });
     try {
       const endpoint = await server.start();

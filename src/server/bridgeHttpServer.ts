@@ -7,7 +7,7 @@ import {
   writeBufferedResponse
 } from "../core/boundedResponse";
 import type { BridgeLogger } from "../core/logging";
-import { McpSessionRouter } from "./mcpSessionRouter";
+import { McpSessionRouter, type ConfigureMcpServer } from "./mcpSessionRouter";
 
 const LOOPBACK_HOST = "127.0.0.1";
 
@@ -16,6 +16,7 @@ export interface BridgeHttpServerOptions {
   readonly port: number;
   readonly getAccessToken: () => Promise<string>;
   readonly logger: BridgeLogger;
+  readonly configureMcpServer?: ConfigureMcpServer;
 }
 
 export class BridgeHttpServer {
@@ -51,7 +52,8 @@ export class BridgeHttpServer {
       const endpoint = `http://${LOOPBACK_HOST}:${address.port}/mcp`;
       this.router = new McpSessionRouter(
         [`${LOOPBACK_HOST}:${address.port}`, LOOPBACK_HOST],
-        this.options.logger
+        this.options.logger,
+        this.options.configureMcpServer
       );
       this.server = server;
       this.endpointValue = endpoint;
