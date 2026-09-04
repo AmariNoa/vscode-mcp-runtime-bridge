@@ -5,6 +5,7 @@ import { BridgeError } from "../core/errors";
 import type { BridgeLogger } from "../core/logging";
 import { BridgeHttpServer } from "../server/bridgeHttpServer";
 import { registerVsCodeTools } from "../vscode/registerTools";
+import { VsCodeEditService } from "../vscode/editTools";
 import { VsCodeToolsService } from "../vscode/workspaceTools";
 
 const CONFIGURATION_SECTION = "vscodeMcp";
@@ -112,7 +113,17 @@ export class BridgeController implements vscode.Disposable {
       getAccessToken: () => this.tokenStore.getOrCreate(),
       logger: this.logger,
       configureMcpServer: (mcpServer) =>
-        registerVsCodeTools(mcpServer, new VsCodeToolsService(), this.logger, this.sessionId)
+        registerVsCodeTools(
+          mcpServer,
+          new VsCodeToolsService(),
+          this.logger,
+          this.sessionId,
+          new VsCodeEditService(() =>
+            vscode.workspace
+              .getConfiguration(CONFIGURATION_SECTION)
+              .get<boolean>("allowWorkspaceEdit", true)
+          )
+        )
     });
     try {
       const endpoint = await server.start();

@@ -5,6 +5,7 @@ import { BridgeError } from "../../src/core/errors";
 import { NULL_LOGGER } from "../../src/core/logging";
 import { BridgeHttpServer } from "../../src/server/bridgeHttpServer";
 import { registerVsCodeTools } from "../../src/vscode/registerTools";
+import type { VsCodeEditService } from "../../src/vscode/editTools";
 import type { VsCodeToolsService } from "../../src/vscode/workspaceTools";
 
 const ACCESS_TOKEN = "integration_test_token";
@@ -80,14 +81,18 @@ describe("BridgeHttpServer", () => {
       readDocument: () => Promise.resolve({ uri: "untitled:test", text: "draft" }),
       getDiagnostics: () => ({ diagnostics: [], count: 0, truncated: false })
     } as unknown as VsCodeToolsService;
+    const editService = {
+      applyEdit: () => Promise.resolve({ uri: "untitled:test", currentVersion: 2 })
+    } as unknown as VsCodeEditService;
     const server = await startServer(0, (mcpServer) =>
-      registerVsCodeTools(mcpServer, service, NULL_LOGGER, "test-session")
+      registerVsCodeTools(mcpServer, service, NULL_LOGGER, "test-session", editService)
     );
     const { client, transport } = createClient(server.endpoint!);
     await client.connect(transport);
 
     const tools = await client.listTools();
     expect(tools.tools.map((tool) => tool.name).sort()).toEqual([
+      "vscode.apply_edit",
       "vscode.get_capabilities",
       "vscode.get_diagnostics",
       "vscode.get_open_documents",

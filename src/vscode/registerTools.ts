@@ -3,13 +3,15 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod/v4";
 import { BridgeError } from "../core/errors";
 import type { BridgeLogger } from "../core/logging";
+import type { VsCodeEditService } from "./editTools";
 import type { VsCodeToolsService } from "./workspaceTools";
 
 export function registerVsCodeTools(
   server: McpServer,
   service: VsCodeToolsService,
   logger: BridgeLogger,
-  sessionId = "bridge-session"
+  sessionId = "bridge-session",
+  editService?: VsCodeEditService
 ): void {
   server.registerTool(
     "vscode.get_workspace_info",
@@ -56,6 +58,37 @@ export function registerVsCodeTools(
     },
     () => executeTool("vscode.get_diagnostics", logger, () => service.getDiagnostics())
   );
+  if (editService !== undefined) {
+    server.registerTool(
+      "vscode.apply_edit",
+      {
+        description: "Apply version-checked UTF-16 text edits within the current workspace.",
+        inputSchema: z.object({
+          uri: z.string().min(1),
+          expectedVersion: z.number().int().nonnegative(),
+          edits: z
+            .array(
+              z.object({
+                range: z.object({
+                  start: z.object({
+                    line: z.number().int().nonnegative(),
+                    character: z.number().int().nonnegative()
+                  }),
+                  end: z.object({
+                    line: z.number().int().nonnegative(),
+                    character: z.number().int().nonnegative()
+                  })
+                }),
+                newText: z.string()
+              })
+            )
+            .max(1_000)
+        }),
+        annotations: { readOnlyHint: false, destructiveHint: true }
+      },
+      (input) => executeTool("vscode.apply_edit", logger, () => editService.applyEdit(input))
+    );
+  }
 }
 
 async function executeTool(
