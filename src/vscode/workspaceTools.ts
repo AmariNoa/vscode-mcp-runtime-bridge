@@ -6,6 +6,11 @@ export const MAX_DOCUMENT_BYTES = 4 * 2 ** 20;
 export const MAX_WORKSPACE_DIAGNOSTICS = 5_000;
 
 export class VsCodeToolsService {
+  public constructor(
+    private readonly getExtensionCapabilities: () => Promise<Record<string, unknown>> = () =>
+      Promise.resolve({})
+  ) {}
+
   public getWorkspaceInfo(sessionId: string): Record<string, unknown> {
     const activeDocument = vscode.window.activeTextEditor?.document;
     return {
@@ -24,10 +29,10 @@ export class VsCodeToolsService {
     };
   }
 
-  public getCapabilities(): Record<string, unknown> {
+  public async getCapabilities(): Promise<Record<string, unknown>> {
     return {
       supportedEnvironment: isSupportedEnvironment(vscode.env.uiKind, vscode.env.remoteName),
-      extensions: {}
+      extensions: await this.getExtensionCapabilities()
     };
   }
 

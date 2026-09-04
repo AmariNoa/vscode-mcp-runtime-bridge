@@ -86,6 +86,17 @@ afterEach(() => {
 });
 
 describe("VsCodeToolsService", () => {
+  it("includes asynchronously evaluated extension capabilities", async () => {
+    const service = new VsCodeToolsService(() =>
+      Promise.resolve({ mfm: { installed: true, contractCompatible: true } })
+    );
+
+    await expect(service.getCapabilities()).resolves.toMatchObject({
+      supportedEnvironment: true,
+      extensions: { mfm: { installed: true, contractCompatible: true } }
+    });
+  });
+
   it("reports active editor and supported desktop metadata", () => {
     const document = createDocument("untitled:active", "draft");
     state.documents = [document];

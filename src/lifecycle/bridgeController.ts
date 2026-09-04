@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import * as vscode from "vscode";
+import { MfmAdapter } from "../adapters/mfm/adapter";
+import { registerMfmTools } from "../adapters/mfm/tools";
 import { BearerTokenStore } from "../core/auth";
 import { BridgeError } from "../core/errors";
 import type { BridgeLogger } from "../core/logging";
@@ -107,15 +109,19 @@ export class BridgeController implements vscode.Disposable {
       return;
     }
 
+    const mfmAdapter = new MfmAdapter();
+    const vscodeTools = new VsCodeToolsService(async () => ({
+      mfm: await mfmAdapter.getCapabilitySummary(false)
+    }));
     const server = new BridgeHttpServer({
       host,
       port,
       getAccessToken: () => this.tokenStore.getOrCreate(),
       logger: this.logger,
-      configureMcpServer: (mcpServer) =>
+      configureMcpServer: (mcpServer) => {
         registerVsCodeTools(
           mcpServer,
-          new VsCodeToolsService(),
+          vscodeTools,
           this.logger,
           this.sessionId,
           new VsCodeEditService(() =>
@@ -123,7 +129,9 @@ export class BridgeController implements vscode.Disposable {
               .getConfiguration(CONFIGURATION_SECTION)
               .get<boolean>("allowWorkspaceEdit", true)
           )
-        )
+        );
+        registerMfmTools(mcpServer, mfmAdapter, vscodeTools, this.logger);
+      }
     });
     try {
       const endpoint = await server.start();
