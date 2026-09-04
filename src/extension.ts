@@ -1,10 +1,16 @@
 import type * as vscode from "vscode";
+import { BridgeController } from "./lifecycle/bridgeController";
 
-export function activate(_context: vscode.ExtensionContext): void {
-  // Server lifecycle is implemented in Phase 1 after the contract is frozen.
+let controller: BridgeController | undefined;
+
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
+  controller = new BridgeController(context);
+  await controller.initialize();
 }
 
-export function deactivate(): void {
-  // Server lifecycle is implemented in Phase 1 after the contract is frozen.
+export async function deactivate(): Promise<void> {
+  const activeController = controller;
+  controller = undefined;
+  await activeController?.shutdown();
 }
 
