@@ -58,4 +58,31 @@ describe("bounded transport response", () => {
     expect(Buffer.from(accepted.body)).toEqual(envelope);
     expect(Buffer.from(rejected.body)).not.toEqual(envelope);
   });
+
+  it("accepts a maximum raw PNG after base64 and metadata when the full envelope remains below 32 MiB", async () => {
+    const pngBase64 = Buffer.alloc(16 * 2 ** 20).toString("base64");
+    const envelope = Buffer.from(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: "maximum-capture",
+        result: {
+          content: [{ type: "image", mimeType: "image/png", data: pngBase64 }],
+          structuredContent: {
+            mimeType: "image/png",
+            pngByteLength: 16 * 2 ** 20,
+            diagnostics: [],
+            notices: [],
+            externalResources: [],
+            knownVisualDifferences: [],
+            capture: { format: "png", browserNetworkPolicy: "deny-all" }
+          }
+        }
+      }),
+      "utf8"
+    );
+
+    expect(envelope.byteLength).toBeLessThan(MAX_TRANSPORT_RESPONSE_BYTES);
+    const result = await bufferBoundedTransportResponse(new Response(envelope), "maximum-capture");
+    expect(result.body.byteLength).toBe(envelope.byteLength);
+  });
 });

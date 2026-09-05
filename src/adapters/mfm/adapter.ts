@@ -96,6 +96,19 @@ export class MfmAdapter {
     );
   }
 
+  public async renderHtmlWithToken(
+    text: string,
+    options: MfmRenderOptions,
+    token: vscode.CancellationToken
+  ): Promise<MfmApiResult<unknown>> {
+    return this.invokeWithToken(
+      "renderHtml",
+      token,
+      (api) => api.renderHtml(text, options, token),
+      renderResultSchema
+    );
+  }
+
   public async listInstanceProfiles(signal?: AbortSignal): Promise<MfmApiResult<unknown>> {
     return this.invoke(
       "listInstanceProfiles",
@@ -164,11 +177,6 @@ export class MfmAdapter {
     schema: z.ZodType<T>,
     allowedInUnsupportedEnvironment = false
   ): Promise<MfmApiResult<unknown>> {
-    const api = await this.getApi();
-    if (!allowedInUnsupportedEnvironment && !api.environment.supported) {
-      return { ok: false, error: { code: "unsupported-environment" } };
-    }
-
     const cancellation = new vscode.CancellationTokenSource();
     const cancel = (): void => cancellation.cancel();
     if (signal?.aborted) {
@@ -176,7 +184,32 @@ export class MfmAdapter {
     }
     signal?.addEventListener("abort", cancel, { once: true });
     try {
-      const rawResult = await operation(api, cancellation.token);
+      return await this.invokeWithToken(
+        operationName,
+        cancellation.token,
+        (api) => operation(api, cancellation.token),
+        schema,
+        allowedInUnsupportedEnvironment
+      );
+    } finally {
+      signal?.removeEventListener("abort", cancel);
+      cancellation.dispose();
+    }
+  }
+
+  private async invokeWithToken<T>(
+    operationName: "parse" | "validate" | "renderHtml" | "listInstanceProfiles",
+    _token: vscode.CancellationToken,
+    operation: (api: MfmExtensionApi) => Promise<unknown>,
+    schema: z.ZodType<T>,
+    allowedInUnsupportedEnvironment = false
+  ): Promise<MfmApiResult<unknown>> {
+    const api = await this.getApi();
+    if (!allowedInUnsupportedEnvironment && !api.environment.supported) {
+      return { ok: false, error: { code: "unsupported-environment" } };
+    }
+    try {
+      const rawResult = await operation(api);
       return sanitizeResult(schema, rawResult) as MfmApiResult<unknown>;
     } catch (error) {
       if (error instanceof BridgeError && error.code === "extension-contract-invalid") {
@@ -192,9 +225,6 @@ export class MfmAdapter {
         undefined,
         { cause: error }
       );
-    } finally {
-      signal?.removeEventListener("abort", cancel);
-      cancellation.dispose();
     }
   }
 }

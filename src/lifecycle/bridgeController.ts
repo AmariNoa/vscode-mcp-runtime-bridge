@@ -1,7 +1,11 @@
 import { randomUUID } from "node:crypto";
+import { join } from "node:path";
 import * as vscode from "vscode";
 import { MfmAdapter } from "../adapters/mfm/adapter";
 import { registerMfmTools } from "../adapters/mfm/tools";
+import { BrowserManager, resolveBundledBrowserExecutable } from "../capture/browserManager";
+import { CaptureService } from "../capture/captureService";
+import { registerCaptureTool } from "../capture/tools";
 import { BearerTokenStore } from "../core/auth";
 import { BridgeError } from "../core/errors";
 import type { BridgeLogger } from "../core/logging";
@@ -27,6 +31,7 @@ export class BridgeController implements vscode.Disposable {
   private readonly output: vscode.OutputChannel;
   private readonly logger: BridgeLogger;
   private server: BridgeHttpServer | undefined;
+  private browserManager: BrowserManager | undefined;
   private lifecycleQueue: Promise<void> = Promise.resolve();
   private disposed = false;
 
@@ -109,10 +114,40 @@ export class BridgeController implements vscode.Disposable {
       return;
     }
 
+    const maximumConcurrent = configuration.get<number>("maxConcurrentCaptures", 2);
+    const queueLimit = configuration.get<number>("captureQueueLimit", 8);
+    if (
+      !Number.isInteger(maximumConcurrent) ||
+      maximumConcurrent < 1 ||
+      maximumConcurrent > 2 ||
+      !Number.isInteger(queueLimit) ||
+      queueLimit < 0 ||
+      queueLimit > 8
+    ) {
+      await this.reportStartupFailure(
+        new BridgeError("server-start-failed", "The capture concurrency configuration is invalid.")
+      );
+      return;
+    }
+
     const mfmAdapter = new MfmAdapter();
+    const browserDirectory = join(this.context.extensionPath, ".playwright-browsers");
+    const browserManager = new BrowserManager({
+      resolveExecutablePath:
+        this.context.extensionMode === vscode.ExtensionMode.Development
+          ? undefined
+          : () => resolveBundledBrowserExecutable(browserDirectory)
+    });
     const vscodeTools = new VsCodeToolsService(async () => ({
-      mfm: await mfmAdapter.getCapabilitySummary(false)
+      mfm: await mfmAdapter.getCapabilitySummary(await browserManager.isAvailable())
     }));
+    const captureService = new CaptureService({
+      adapter: mfmAdapter,
+      documents: vscodeTools,
+      browserManager,
+      maximumConcurrent,
+      queueLimit
+    });
     const server = new BridgeHttpServer({
       host,
       port,
@@ -131,24 +166,30 @@ export class BridgeController implements vscode.Disposable {
           )
         );
         registerMfmTools(mcpServer, mfmAdapter, vscodeTools, this.logger);
+        registerCaptureTool(mcpServer, captureService, this.logger);
       }
     });
     try {
       const endpoint = await server.start();
       this.server = server;
+      this.browserManager = browserManager;
       this.logger.info("server-started", { endpoint });
     } catch (error) {
+      await browserManager.close();
       await this.reportStartupFailure(error);
     }
   }
 
   private async stop(): Promise<void> {
     const server = this.server;
+    const browserManager = this.browserManager;
     this.server = undefined;
+    this.browserManager = undefined;
     if (server !== undefined) {
       await server.stop();
       this.logger.info("server-stopped");
     }
+    await browserManager?.close();
   }
 
   private async copyEndpoint(): Promise<void> {

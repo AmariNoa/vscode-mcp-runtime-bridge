@@ -85,7 +85,7 @@
     "test": "vitest run --reporter=dot",
     "test:contract": "vitest run test/contracts --reporter=dot",
     "test:vscode": "node ./test/vscode/run.mjs",
-    "package": "npm run build && vsce package"
+    "package": "node scripts/package-platform.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.30.0",
@@ -99,6 +99,7 @@
     "@vscode/test-electron": "2.5.2",
     "@vscode/vsce": "3.9.2",
     "esbuild": "0.28.2",
+    "jszip": "3.10.1",
     "typescript": "5.9.3",
     "vite": "6.4.3",
     "vitest": "3.2.6"

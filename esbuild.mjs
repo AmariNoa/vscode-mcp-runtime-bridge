@@ -10,7 +10,7 @@ const context = await esbuild.context({
   format: "cjs",
   platform: "node",
   target: "node20",
-  external: ["vscode"],
+  external: ["vscode", "playwright"],
   sourcemap: !production,
   minify: production,
   logLevel: "info"

@@ -13,6 +13,8 @@ out/
 coverage/
 *.vsix
 *.log
+.playwright-browsers/
+.vsix-package-readme.md
 
 # Local configuration and secrets
 .env
