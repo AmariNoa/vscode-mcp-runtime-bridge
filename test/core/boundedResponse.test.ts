@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { MAX_PNG_BYTES } from "../../src/capture/png";
 import {
   MAX_TRANSPORT_RESPONSE_BYTES,
   bufferBoundedTransportResponse
@@ -59,8 +60,8 @@ describe("bounded transport response", () => {
     expect(Buffer.from(rejected.body)).not.toEqual(envelope);
   });
 
-  it("accepts a maximum raw PNG after base64 and metadata when the full envelope remains below 32 MiB", async () => {
-    const pngBase64 = Buffer.alloc(16 * 2 ** 20).toString("base64");
+  it("accepts a maximum raw PNG after base64 and metadata below the client ceiling", async () => {
+    const pngBase64 = Buffer.alloc(MAX_PNG_BYTES).toString("base64");
     const envelope = Buffer.from(
       JSON.stringify({
         jsonrpc: "2.0",
@@ -69,7 +70,7 @@ describe("bounded transport response", () => {
           content: [{ type: "image", mimeType: "image/png", data: pngBase64 }],
           structuredContent: {
             mimeType: "image/png",
-            pngByteLength: 16 * 2 ** 20,
+            pngByteLength: MAX_PNG_BYTES,
             diagnostics: [],
             notices: [],
             externalResources: [],
@@ -84,6 +85,24 @@ describe("bounded transport response", () => {
     expect(envelope.byteLength).toBeLessThan(MAX_TRANSPORT_RESPONSE_BYTES);
     const result = await bufferBoundedTransportResponse(new Response(envelope), "maximum-capture");
     expect(result.body.byteLength).toBe(envelope.byteLength);
+  });
+
+  it("replaces an otherwise valid capture when variable metadata crosses the client ceiling", async () => {
+    const envelope = JSON.stringify({
+      jsonrpc: "2.0",
+      id: 91,
+      result: {
+        content: [{ type: "image", mimeType: "image/png", data: Buffer.alloc(MAX_PNG_BYTES).toString("base64") }],
+        structuredContent: { diagnostics: [{ message: "x".repeat(7 * 2 ** 20) }] }
+      }
+    });
+    const result = await bufferBoundedTransportResponse(new Response(envelope), 91);
+
+    expect(result.body.byteLength).toBeLessThan(1024);
+    expect(JSON.parse(Buffer.from(result.body).toString("utf8"))).toMatchObject({
+      id: 91,
+      error: { data: { code: "transport-response-too-large", maximumBytes: 16777215 } }
+    });
   });
 
   it("cancels a streaming body as soon as the complete response crosses the ceiling", async () => {

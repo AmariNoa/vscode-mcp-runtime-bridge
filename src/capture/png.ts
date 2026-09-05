@@ -1,6 +1,7 @@
 import { BridgeError } from "../core/errors";
 
-export const MAX_PNG_BYTES = 16 * 2 ** 20;
+// Base64 encoding leaves room for the JSON envelope below common client limits.
+export const MAX_PNG_BYTES = 7 * 2 ** 20;
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 export interface PngDimensions {
@@ -13,7 +14,7 @@ export function validatePngAndReadDimensions(
   maximumBytes = MAX_PNG_BYTES
 ): PngDimensions {
   if (bytes.byteLength > maximumBytes) {
-    throw new BridgeError("capture-output-too-large", "PNG output exceeds the 16 MiB limit.", {
+    throw new BridgeError("capture-output-too-large", "PNG output exceeds the configured byte limit.", {
       pngByteLength: bytes.byteLength,
       maximumBytes
     });

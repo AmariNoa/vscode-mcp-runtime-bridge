@@ -1,6 +1,7 @@
 import type { ServerResponse } from "node:http";
 
-export const MAX_TRANSPORT_RESPONSE_BYTES = 32 * 2 ** 20;
+// Keep the complete JSON response strictly below the client's 16 MiB message ceiling.
+export const MAX_TRANSPORT_RESPONSE_BYTES = 16 * 2 ** 20 - 1;
 
 export interface BufferedWebResponse {
   readonly status: number;
