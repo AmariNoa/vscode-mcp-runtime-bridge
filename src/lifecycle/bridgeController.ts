@@ -133,6 +133,7 @@ export class BridgeController implements vscode.Disposable {
     const mfmAdapter = new MfmAdapter();
     const browserDirectory = join(this.context.extensionPath, ".playwright-browsers");
     const browserManager = new BrowserManager({
+      logger: this.logger,
       resolveExecutablePath:
         this.context.extensionMode === vscode.ExtensionMode.Development
           ? undefined
@@ -146,7 +147,9 @@ export class BridgeController implements vscode.Disposable {
       documents: vscodeTools,
       browserManager,
       maximumConcurrent,
-      queueLimit
+      queueLimit,
+      queueObserver: (queueLength, activeCaptures) =>
+        this.logger.info("capture-queue-state", { queueLength, activeCaptures })
     });
     const server = new BridgeHttpServer({
       host,

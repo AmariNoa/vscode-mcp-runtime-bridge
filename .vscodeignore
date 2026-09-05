@@ -11,6 +11,8 @@ scripts/**
 src/**
 test/**
 coverage/**
+.test-dist/**
+.vscode-test/**
 *.log
 *.tsbuildinfo
 esbuild.mjs

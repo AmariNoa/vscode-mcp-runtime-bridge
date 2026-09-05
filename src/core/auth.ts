@@ -11,6 +11,7 @@ export interface SecretStore {
 export class BearerTokenStore {
   private currentToken: string | undefined;
   private pendingToken: Promise<string> | undefined;
+  private operationQueue: Promise<void> = Promise.resolve();
 
   public constructor(private readonly secrets: SecretStore) {}
 
@@ -22,7 +23,12 @@ export class BearerTokenStore {
       return this.pendingToken;
     }
 
-    this.pendingToken = this.loadOrCreate();
+    const operation = this.operationQueue.then(() => this.loadOrCreate());
+    this.operationQueue = operation.then(
+      () => undefined,
+      () => undefined
+    );
+    this.pendingToken = operation;
     try {
       this.currentToken = await this.pendingToken;
       return this.currentToken;
@@ -32,12 +38,22 @@ export class BearerTokenStore {
   }
 
   public async regenerate(): Promise<void> {
-    const token = generateAccessToken();
-    await this.secrets.store(ACCESS_TOKEN_SECRET_KEY, token);
-    this.currentToken = token;
+    const operation = this.operationQueue.then(async () => {
+      const token = generateAccessToken();
+      await this.secrets.store(ACCESS_TOKEN_SECRET_KEY, token);
+      this.currentToken = token;
+    });
+    this.operationQueue = operation.then(
+      () => undefined,
+      () => undefined
+    );
+    await operation;
   }
 
   private async loadOrCreate(): Promise<string> {
+    if (this.currentToken !== undefined) {
+      return this.currentToken;
+    }
     const stored = await this.secrets.get(ACCESS_TOKEN_SECRET_KEY);
     if (stored !== undefined && stored.length > 0) {
       return stored;

@@ -167,6 +167,22 @@ describe("MFM MCP tools", () => {
     await client.close();
   });
 
+  it("returns invalid-tool-input for invalid capture dimensions before capture execution", async () => {
+    apiState.api = createApi();
+    const { client } = await connect();
+
+    await expect(
+      client.callTool({
+        name: "mfm.capture_preview",
+        arguments: { text: "preview", width: 127 }
+      })
+    ).resolves.toMatchObject({
+      isError: true,
+      structuredContent: { ok: false, error: { code: "invalid-tool-input" } }
+    });
+    await client.close();
+  });
+
   it("prefers unsaved VS Code document text for URI input", async () => {
     apiState.api = createApi();
     const { client } = await connect();
@@ -218,6 +234,10 @@ describe("MFM MCP tools", () => {
     });
 
     expect(result.isError).toBe(true);
+    expect(result.structuredContent).toMatchObject({
+      ok: false,
+      error: { code: "invalid-tool-input" }
+    });
     expect(parseCalls).toBe(0);
     await client.close();
   });

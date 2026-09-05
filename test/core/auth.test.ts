@@ -22,6 +22,17 @@ class MemorySecretStore implements SecretStore {
   }
 }
 
+function deferred<T>(): {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+} {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
 describe("BearerTokenStore", () => {
   it("reuses a stored token without rewriting SecretStorage", async () => {
     const secrets = new MemorySecretStore();
@@ -52,6 +63,36 @@ describe("BearerTokenStore", () => {
 
     expect(replacement).not.toBe(original);
     expect(secrets.values.get(ACCESS_TOKEN_SECRET_KEY)).toBe(replacement);
+  });
+
+  it("serializes regeneration behind an in-flight initial load", async () => {
+    const secrets = new MemorySecretStore();
+    const pendingRead = deferred<string | undefined>();
+    secrets.get = () => pendingRead.promise;
+    const store = new BearerTokenStore(secrets);
+
+    const initial = store.getOrCreate();
+    const regeneration = store.regenerate();
+    pendingRead.resolve(undefined);
+    const initialToken = await initial;
+    await regeneration;
+    const regeneratedToken = await store.getOrCreate();
+
+    expect(regeneratedToken).not.toBe(initialToken);
+    expect(secrets.values.get(ACCESS_TOKEN_SECRET_KEY)).toBe(regeneratedToken);
+    expect(secrets.stores).toBe(2);
+  });
+
+  it("serializes concurrent regenerations without losing the last completed value", async () => {
+    const secrets = new MemorySecretStore();
+    const store = new BearerTokenStore(secrets);
+    await store.getOrCreate();
+
+    await Promise.all([store.regenerate(), store.regenerate(), store.regenerate()]);
+    const current = await store.getOrCreate();
+
+    expect(secrets.values.get(ACCESS_TOKEN_SECRET_KEY)).toBe(current);
+    expect(secrets.stores).toBe(4);
   });
 });
 

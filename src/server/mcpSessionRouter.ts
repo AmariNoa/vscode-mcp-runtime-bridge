@@ -81,12 +81,38 @@ function createMcpServer(configureServer?: ConfigureMcpServer): McpServer {
     },
     { capabilities: { tools: {} } }
   );
+  installBridgeToolErrorFormatter(server);
   if (configureServer === undefined) {
     server.server.setRequestHandler(ListToolsRequestSchema, () => ({ tools: [] }));
   } else {
     configureServer(server);
   }
   return server;
+}
+
+function installBridgeToolErrorFormatter(server: McpServer): void {
+  Object.defineProperty(server, "createToolError", {
+    configurable: false,
+    writable: false,
+    value: (sdkMessage: string) => {
+      const invalidInput = sdkMessage.includes("Invalid arguments for tool ");
+      const code = invalidInput ? "invalid-tool-input" : "internal-error";
+      const failure = {
+        ok: false as const,
+        error: {
+          code,
+          message: invalidInput
+            ? "The tool arguments do not match the required input schema."
+            : "The MCP tool failed unexpectedly."
+        }
+      };
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify(failure) }],
+        structuredContent: failure,
+        isError: true
+      };
+    }
+  });
 }
 
 function jsonRpcError(status: number, message: string, id: unknown): Response {

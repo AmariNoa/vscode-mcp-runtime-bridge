@@ -2,6 +2,7 @@ import { access, readFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { chromium } from "playwright";
 import { BridgeError } from "../core/errors";
+import { NULL_LOGGER, type BridgeLogger } from "../core/logging";
 import { isBrowserUrlAllowed } from "./htmlPolicy";
 
 export interface BrowserPageHandle {
@@ -53,6 +54,7 @@ export interface BrowserManagerOptions {
   readonly launcher?: BrowserLauncher;
   readonly executableExists?: (path: string) => Promise<boolean>;
   readonly resolveExecutablePath?: () => Promise<string | undefined>;
+  readonly logger?: BridgeLogger;
 }
 
 interface BundledBrowserManifest {
@@ -79,17 +81,20 @@ const HARDENED_CHROMIUM_ARGUMENTS = [
 export class BrowserManager {
   private browser: BrowserHandle | undefined;
   private pendingLaunch: Promise<BrowserHandle> | undefined;
+  private closeOperation: Promise<void> | undefined;
   private closed = false;
 
   private readonly launcher: BrowserLauncher;
   private readonly executableExists: (path: string) => Promise<boolean>;
   private readonly resolveExecutablePath: () => Promise<string | undefined>;
+  private readonly logger: BridgeLogger;
 
   public constructor(options: BrowserManagerOptions = {}) {
     this.launcher = options.launcher ?? (chromium as unknown as BrowserLauncher);
     this.executableExists = options.executableExists ?? defaultExecutableExists;
     this.resolveExecutablePath =
       options.resolveExecutablePath ?? (() => Promise.resolve(this.launcher.executablePath()));
+    this.logger = options.logger ?? NULL_LOGGER;
   }
 
   public async isAvailable(): Promise<boolean> {
@@ -158,12 +163,21 @@ export class BrowserManager {
     }
   }
 
-  public async close(): Promise<void> {
+  public close(): Promise<void> {
+    if (this.closeOperation !== undefined) {
+      return this.closeOperation;
+    }
     this.closed = true;
+    this.closeOperation = this.closeInternal();
+    return this.closeOperation;
+  }
+
+  private async closeInternal(): Promise<void> {
     const browser = this.browser ?? (await this.pendingLaunch?.catch(() => undefined));
     this.browser = undefined;
     if (browser !== undefined) {
       await browser.close().catch(() => undefined);
+      this.logger.info("browser-stopped");
     }
   }
 
@@ -185,9 +199,11 @@ export class BrowserManager {
       throw new BridgeError("browser-unavailable", "The browser manager closed during startup.");
     }
     this.browser = browser;
+    this.logger.info("browser-started");
     browser.on("disconnected", () => {
       if (this.browser === browser) {
         this.browser = undefined;
+        this.logger.error("browser-disconnected", { errorCode: "browser-unavailable" });
       }
     });
     return browser;

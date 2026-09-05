@@ -85,4 +85,27 @@ describe("bounded transport response", () => {
     const result = await bufferBoundedTransportResponse(new Response(envelope), "maximum-capture");
     expect(result.body.byteLength).toBe(envelope.byteLength);
   });
+
+  it("cancels a streaming body as soon as the complete response crosses the ceiling", async () => {
+    let cancelled = false;
+    let pulls = 0;
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulls += 1;
+        controller.enqueue(new Uint8Array(6));
+      },
+      cancel() {
+        cancelled = true;
+      }
+    });
+
+    const result = await bufferBoundedTransportResponse(new Response(body), "stream", 10);
+
+    expect(cancelled).toBe(true);
+    expect(pulls).toBeLessThanOrEqual(3);
+    expect(JSON.parse(Buffer.from(result.body).toString("utf8"))).toMatchObject({
+      error: { data: { code: "transport-response-too-large", maximumBytes: 10 } },
+      id: "stream"
+    });
+  });
 });

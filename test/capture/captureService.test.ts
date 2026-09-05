@@ -52,6 +52,14 @@ interface FakeState {
   readUris: string[];
 }
 
+function deferred(): { promise: Promise<void>; resolve: () => void } {
+  let resolve!: () => void;
+  const promise = new Promise<void>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
 function createService(options: {
   now?: () => number;
   observer?: (stage: CaptureStage) => void;
@@ -60,6 +68,8 @@ function createService(options: {
   maximumConcurrent?: number;
   queueLimit?: number;
   setTimer?: (callback: () => void, delay: number) => ReturnType<typeof setTimeout>;
+  queueObserver?: (queueLength: number, activeCaptures: number) => void;
+  ensureBrowserGate?: Promise<void>;
 } = {}): { service: CaptureService; state: FakeState } {
   const state: FakeState = {
     stages: [],
@@ -91,9 +101,10 @@ function createService(options: {
   };
   const browserManager = {
     isAvailable: () => Promise.resolve(true),
-    ensureBrowser: () => {
+    ensureBrowser: async () => {
       state.browserStarts += 1;
-      return Promise.resolve({});
+      await options.ensureBrowserGate;
+      return {};
     },
     createSession: () => Promise.resolve({ context, page })
   } as unknown as BrowserManager;
@@ -132,7 +143,8 @@ function createService(options: {
     stageObserver: (stage) => {
       state.stages.push(stage);
       options.observer?.(stage);
-    }
+    },
+    queueObserver: options.queueObserver
   });
   return { service, state };
 }
@@ -222,7 +234,7 @@ describe("CaptureService", () => {
   it("prioritizes caller cancellation when it races the deadline", async () => {
     let now = 0;
     const caller = new AbortController();
-    const { service } = createService({
+    const { service, state } = createService({
       now: () => now,
       observer: (stage) => {
         if (stage === "terminal-commit") {
@@ -235,6 +247,32 @@ describe("CaptureService", () => {
     await expect(service.capture({ text: "text" }, caller.signal)).rejects.toMatchObject({
       code: "cancelled"
     });
+    await vi.waitFor(() => expect(state.pageCloses).toBe(1));
+    expect(state.contextCloses).toBe(1);
+  });
+
+  it("discards a browser startup that completes after the timeout", async () => {
+    const startup = deferred();
+    const timerCallbacks: Array<() => void> = [];
+    let now = 0;
+    const { service, state } = createService({
+      now: () => now,
+      ensureBrowserGate: startup.promise,
+      setTimer: (callback) => {
+        timerCallbacks.push(callback);
+        return {} as ReturnType<typeof setTimeout>;
+      }
+    });
+    const result = service.capture({ text: "late browser" }, new AbortController().signal);
+    await vi.waitFor(() => expect(state.browserStarts).toBe(1));
+    now = 100;
+    timerCallbacks[0]!();
+
+    await expect(result).rejects.toMatchObject({ code: "capture-timeout" });
+    startup.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(state.stages).not.toContain("page-created");
+    expect(state.screenshots).toBe(0);
   });
 
   it("shares concurrency and queue limits across callers", async () => {
@@ -283,5 +321,29 @@ describe("CaptureService", () => {
     pending[0]!(successfulRender());
     await expect(first).resolves.toHaveProperty("content.0.type", "image");
     expect(pending).toHaveLength(1);
+  });
+
+  it("reports the shared queue length without source or image content", async () => {
+    const states: Array<{ queueLength: number; activeCaptures: number }> = [];
+    const pending: Array<(value: unknown) => void> = [];
+    const { service } = createService({
+      maximumConcurrent: 1,
+      queueLimit: 1,
+      render: () => new Promise((resolve) => pending.push(resolve)),
+      queueObserver: (queueLength, activeCaptures) =>
+        states.push({ queueLength, activeCaptures })
+    });
+    const first = service.capture({ text: "sensitive-first" }, new AbortController().signal);
+    await vi.waitFor(() => expect(pending).toHaveLength(1));
+    const second = service.capture({ text: "sensitive-second" }, new AbortController().signal);
+
+    expect(states).toContainEqual({ queueLength: 1, activeCaptures: 1 });
+    expect(JSON.stringify(states)).not.toContain("sensitive");
+    pending[0]!(successfulRender());
+    await first;
+    await vi.waitFor(() => expect(pending).toHaveLength(2));
+    pending[1]!(successfulRender());
+    await second;
+    expect(states.at(-1)).toEqual({ queueLength: 0, activeCaptures: 0 });
   });
 });

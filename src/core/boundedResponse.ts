@@ -14,8 +14,8 @@ export async function bufferBoundedTransportResponse(
   requestId: unknown,
   maximumBytes = MAX_TRANSPORT_RESPONSE_BYTES
 ): Promise<BufferedWebResponse> {
-  const body = new Uint8Array(await response.arrayBuffer());
-  if (body.byteLength <= maximumBytes) {
+  const body = await readAtMost(response, maximumBytes);
+  if (body !== undefined) {
     return {
       status: response.status,
       statusText: response.statusText,
@@ -51,6 +51,43 @@ export async function bufferBoundedTransportResponse(
     headers,
     body: replacement
   };
+}
+
+async function readAtMost(response: Response, maximumBytes: number): Promise<Uint8Array | undefined> {
+  if (!Number.isSafeInteger(maximumBytes) || maximumBytes < 0) {
+    throw new RangeError("maximumBytes must be a non-negative safe integer.");
+  }
+  if (response.body === null) {
+    return new Uint8Array();
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      totalBytes += value.byteLength;
+      if (totalBytes > maximumBytes) {
+        await reader.cancel("transport-response-too-large").catch(() => undefined);
+        return undefined;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const body = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return body;
 }
 
 export function writeBufferedResponse(

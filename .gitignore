@@ -11,6 +11,8 @@ node_modules/
 dist/
 out/
 coverage/
+.test-dist/
+.vscode-test/
 *.vsix
 *.log
 .playwright-browsers/

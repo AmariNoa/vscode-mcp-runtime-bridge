@@ -23,6 +23,8 @@ export class BridgeHttpServer {
   private server: Server | undefined;
   private router: McpSessionRouter | undefined;
   private endpointValue: string | undefined;
+  private startOperation: Promise<string> | undefined;
+  private stopOperation: Promise<void> | undefined;
 
   public constructor(private readonly options: BridgeHttpServerOptions) {}
 
@@ -30,10 +32,20 @@ export class BridgeHttpServer {
     return this.endpointValue;
   }
 
-  public async start(): Promise<string> {
-    if (this.server !== undefined) {
+  public start(): Promise<string> {
+    if (this.server !== undefined || this.startOperation !== undefined || this.stopOperation !== undefined) {
       throw new BridgeError("server-start-failed", "The MCP server is already running.");
     }
+    const operation = this.startInternal();
+    this.startOperation = operation;
+    return operation.finally(() => {
+      if (this.startOperation === operation) {
+        this.startOperation = undefined;
+      }
+    });
+  }
+
+  private async startInternal(): Promise<string> {
     if (this.options.host !== LOOPBACK_HOST) {
       throw new BridgeError("server-start-failed", "Only the IPv4 loopback host is supported.");
     }
@@ -66,7 +78,21 @@ export class BridgeHttpServer {
     }
   }
 
-  public async stop(): Promise<void> {
+  public stop(): Promise<void> {
+    if (this.stopOperation !== undefined) {
+      return this.stopOperation;
+    }
+    const operation = this.stopInternal();
+    this.stopOperation = operation;
+    return operation.finally(() => {
+      if (this.stopOperation === operation) {
+        this.stopOperation = undefined;
+      }
+    });
+  }
+
+  private async stopInternal(): Promise<void> {
+    await this.startOperation?.catch(() => undefined);
     const server = this.server;
     const router = this.router;
     this.server = undefined;
@@ -120,11 +146,16 @@ export class BridgeHttpServer {
       const bounded = await bufferBoundedTransportResponse(webResponse, requestId);
       writeBufferedResponse(response, bounded);
     } catch (error) {
+      const bridgeError = error instanceof BridgeError ? error : undefined;
       this.options.logger.error("request-failed", {
-        errorCode: error instanceof BridgeError ? error.code : "internal-error"
+        errorCode: bridgeError?.code ?? "internal-error"
       });
       if (!response.headersSent) {
-        sendJsonRpcError(response, 500, -32603, "Internal server error.", null, "internal-error");
+        if (bridgeError?.code === "invalid-tool-input") {
+          sendJsonRpcError(response, 400, -32600, bridgeError.message, null, bridgeError.code);
+        } else {
+          sendJsonRpcError(response, 500, -32603, "Internal server error.", null, "internal-error");
+        }
       } else {
         response.destroy();
       }

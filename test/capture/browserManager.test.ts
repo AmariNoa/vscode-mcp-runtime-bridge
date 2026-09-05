@@ -10,6 +10,7 @@ import {
   type BrowserHandle,
   type BrowserLauncher
 } from "../../src/capture/browserManager";
+import type { BridgeLogger } from "../../src/core/logging";
 
 const temporaryDirectories: string[] = [];
 
@@ -61,6 +62,17 @@ function createBrowser(): {
     browserClose,
     contextClose
   };
+}
+
+function deferredBrowser(): {
+  readonly promise: Promise<BrowserHandle>;
+  readonly resolve: (browser: BrowserHandle) => void;
+} {
+  let resolve!: (browser: BrowserHandle) => void;
+  const promise = new Promise<BrowserHandle>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
 }
 
 describe("BrowserManager", () => {
@@ -162,6 +174,23 @@ describe("BrowserManager", () => {
     await expect(manager.ensureBrowser()).rejects.toMatchObject({ code: "browser-unavailable" });
   });
 
+  it("coalesces concurrent close calls while startup is pending", async () => {
+    const fake = createBrowser();
+    const pending = deferredBrowser();
+    const manager = new BrowserManager({
+      launcher: { executablePath: () => "available", launch: () => pending.promise },
+      executableExists: () => Promise.resolve(true)
+    });
+    const startup = manager.ensureBrowser();
+    const firstClose = manager.close();
+    const secondClose = manager.close();
+    pending.resolve(fake.browser);
+
+    await expect(startup).rejects.toMatchObject({ code: "browser-unavailable" });
+    await Promise.all([firstClose, secondClose]);
+    expect(fake.browserClose).toHaveBeenCalledTimes(1);
+  });
+
   it("closes a partially created context when page creation fails", async () => {
     const fake = createBrowser();
     vi.spyOn(fake.context, "newPage").mockRejectedValue(new Error("page failed"));
@@ -225,5 +254,31 @@ describe("BrowserManager", () => {
       })
     );
     await expect(resolveBundledBrowserExecutable(directory)).resolves.toBeUndefined();
+  });
+
+  it("logs browser lifecycle without including executable details", async () => {
+    const fake = createBrowser();
+    const events: Array<{ level: string; event: string; metadata?: Readonly<Record<string, unknown>> }> = [];
+    const logger: BridgeLogger = {
+      info: (event, metadata) => events.push({ level: "info", event, metadata }),
+      error: (event, metadata) => events.push({ level: "error", event, metadata })
+    };
+    const manager = new BrowserManager({
+      launcher: {
+        executablePath: () => "secret-browser-path",
+        launch: () => Promise.resolve(fake.browser)
+      },
+      executableExists: () => Promise.resolve(true),
+      logger
+    });
+
+    await manager.ensureBrowser();
+    await manager.close();
+
+    expect(events).toEqual([
+      { level: "info", event: "browser-started", metadata: undefined },
+      { level: "info", event: "browser-stopped", metadata: undefined }
+    ]);
+    expect(JSON.stringify(events)).not.toContain("secret-browser-path");
   });
 });

@@ -87,6 +87,7 @@ export interface CaptureServiceOptions {
   readonly setTimer?: (callback: () => void, delayMs: number) => TimerHandle;
   readonly clearTimer?: (handle: TimerHandle) => void;
   readonly stageObserver?: (stage: CaptureStage) => void;
+  readonly queueObserver?: (queueLength: number, activeCaptures: number) => void;
 }
 
 interface RenderValue {
@@ -179,6 +180,7 @@ export class CaptureService {
         this.start(entry);
       } else if (this.queue.length < this.options.queueLimit) {
         this.queue.push(entry);
+        this.notifyQueueState();
       } else {
         this.terminate(
           entry,
@@ -193,6 +195,7 @@ export class CaptureService {
   private start(entry: QueueEntry): void {
     entry.started = true;
     this.active += 1;
+    this.notifyQueueState();
     void this.runEntry(entry);
   }
 
@@ -207,6 +210,7 @@ export class CaptureService {
     } finally {
       entry.state.mfmCancellation.dispose();
       this.active -= 1;
+      this.notifyQueueState();
       this.startNext();
     }
   }
@@ -396,6 +400,7 @@ export class CaptureService {
       const index = this.queue.indexOf(entry);
       if (index >= 0) {
         this.queue.splice(index, 1);
+        this.notifyQueueState();
       }
       state.mfmCancellation.dispose();
     }
@@ -423,6 +428,10 @@ export class CaptureService {
       page?.close({ runBeforeUnload: false }),
       context?.close()
     ]).then(() => undefined);
+  }
+
+  private notifyQueueState(): void {
+    this.options.queueObserver?.(this.queue.length, this.active);
   }
 }
 
