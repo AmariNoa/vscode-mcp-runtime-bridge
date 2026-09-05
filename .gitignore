@@ -4,7 +4,10 @@ CLAUDE.md
 docs/
 contracts/sources/
 README.md
-.github/
+.github/*
+!.github/workflows/
+.github/workflows/*
+!.github/workflows/ci.yml
 
 # Node.js / VS Code Extension
 node_modules/
